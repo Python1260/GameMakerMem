@@ -9,14 +9,14 @@ Tested on **Pizza Tower** (*version 2022.1*) and **DELTARUNE** (*version 2022.3*
 
 ---
 
-Features:
+## Features:
   * See all instances in the current room.
   * Get/set instance variables.
   * Destroy instances.
   * Go to specific rooms using room ids.
   * Execute GML in-game!
 
-How to use:
+## How to use:
   1) Run main.py, it should install all requirements from *requirements.txt* automatically.
   2) Write the name of the desired game (or it's process id) in the input box in the top of the app.
   3) GMM is now connected, enjoy!
