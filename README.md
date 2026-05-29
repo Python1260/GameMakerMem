@@ -22,5 +22,6 @@ Tested on **Pizza Tower** (*version 2022.1*) and **DELTARUNE** (*version 2022.3*
 
 ## How to use:
   1) Run main.py, it should install all requirements from *requirements.txt* automatically.
-  2) Write the name of the desired game (or it's process id) in the input box in the top of the app.
-  3) GMM is now connected, enjoy!
+  2) Write the name of the desired game (or it's process id) in the input box in the top of the app, and click "Attach".
+  3) All ressources will now be loaded into memory, this may freeze the app for a couple seconds.
+  4) GMM is now connected, enjoy!
