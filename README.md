@@ -5,7 +5,9 @@ Uses [Underanalyzer's](https://github.com/UnderminersTeam/Underanalyzer) GML com
 
 ---
 
+
 Tested on **Pizza Tower** (*version 2022.1*) and **DELTARUNE** (*version 2022.3*), as well as on **GameMaker version 2024.13.3.268**
+
 
 ---
 
@@ -15,6 +17,8 @@ Tested on **Pizza Tower** (*version 2022.1*) and **DELTARUNE** (*version 2022.3*
   * Destroy instances.
   * Go to specific rooms using room ids.
   * Execute GML in-game!
+
+---
 
 ## How to use:
   1) Run main.py, it should install all requirements from *requirements.txt* automatically.
