@@ -1,5 +1,5 @@
 # GameMakerMem
-A GML injector for GameMaker Studio 2.
+A live GML injector for GameMaker Studio 2.
 
 Uses [Underanalyzer's](https://github.com/UnderminersTeam/Underanalyzer) GML compiler, huge shoutout to the [Underminers Team](https://github.com/UnderminersTeam)!
 
