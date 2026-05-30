@@ -2,6 +2,7 @@
 A live GML injector for GameMaker Studio 2.
 
 Uses [Underanalyzer's](https://github.com/UnderminersTeam/Underanalyzer) GML compiler, huge shoutout to the [Underminers Team](https://github.com/UnderminersTeam)!
+*Underanalyzer is licensed under the Mozilla Public License Version 2.0.*
 
 ---
 
