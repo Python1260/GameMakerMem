@@ -13,7 +13,7 @@ class App():
         self.version = "2.0.0"
         self.icon = "assets/images/icon.png"
         self.size = (500, 700)
-
+        
         self.path = os.path.join(LOCALAPPDATA, self.name)
         os.makedirs(self.path, exist_ok=True)
         
@@ -181,7 +181,7 @@ class App():
         self.ui_variable_dict.clear()
         self.ui_attach_input.deselect()
 
-        variables = sorted(self.current_instance.get_variables())
+        variables = self.current_instance.get_variables()
 
         prev_inst = self.current_instance
 

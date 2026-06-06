@@ -93,6 +93,7 @@ class Memory():
                     offsets = self.dumper.dump()
 
                     if offsets:
+                        os.makedirs(os.path.dirname(offsetpath), exist_ok=True)
                         offsets_to_file(offsetpath, offsets)
 
                 offsets_from_file(offsetpath)

@@ -15,7 +15,7 @@ class ObjectBase(Structure):
     
     def get_variables(self):
         structvarsmap = self.get_structvarsmap()
-        return structvarsmap.get_elements()
+        return sorted(structvarsmap.get_elements())
     
     def get_variable(self, name):
         if hasattr(self, name):

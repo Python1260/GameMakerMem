@@ -39,7 +39,7 @@ class CInstance(ObjectBase):
         return super().set_variable(name, value)
     
     def get_variables(self):
-        return super().get_variables() + self.base_variables
+        return self.base_variables + super().get_variables()
     
     id = Structure.int_prop(0xB4, True)
 
