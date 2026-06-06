@@ -7,7 +7,7 @@ Uses [Underanalyzer's](https://github.com/UnderminersTeam/Underanalyzer) GML com
 ---
 
 
-Tested on **Pizza Tower** (*version 2022.1*) and **DELTARUNE** (*version 2022.3*), as well as on **GameMaker version 2024.13.3.268**.
+Tested on **Pizza Tower** (*version 2022.1*) and **DELTARUNE** (*version 2022.3*), as well as on **GameMaker version 2024.13.3.268**. It does support more versions but they weren't necessarly tested.
 Unfortunately, GMM does NOT support games made using GameMaker V1 or lower, therefore it does not work on **UNDERTALE** (yet!).
 
 
