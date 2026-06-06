@@ -1,24 +1,39 @@
-import importlib
+import os
+import json
 
 OFFSETS = {}
-
-def make_offsets(version):
-    module_name = f".data.offsets_{version.replace(".", "_")}"
-    module = importlib.import_module(module_name, package=__package__)
-
-    OFFSETS[version] = vars(module)
 
 def get_offset(version, name):
     return OFFSETS.get(version, {}).get(name, 0x0)
 
 def has_offsets(version):
-    return version in OFFSETS
+    if not version in OFFSETS: return False
 
-make_offsets("2024.14.4.268")
-make_offsets("2022.1")
-make_offsets("2022.3")
+    offsets = OFFSETS[version]
 
-##### HOW TO FIND OFFSETS #####
+    return all(offset != 0 for offset in offsets.values())
+
+def offsets_to_file(filename, offsets):
+    module_name = os.path.splitext(os.path.basename(filename))[0]
+
+    offsets["Version"] = module_name
+
+    with open(filename, "w") as file:
+        try:
+            json.dump(offsets, file, indent=4)
+        except:
+            pass
+
+def offsets_from_file(filename):
+    module_name = os.path.splitext(os.path.basename(filename))[0]
+
+    with open(filename) as file:
+        try:
+            OFFSETS[module_name] = json.load(file)
+        except:
+            pass
+
+##### HOW TO FIND OFFSETS USING STRINGS (OUTDATED) #####
 # RunRoom =                 layer_get_id() - wrong number of arguments
 # CurrentRoom =             %sFATAL ERROR in Room Creation Code for room %s\n\n\n%s\n
 # NewRoom =                 room_goto
@@ -34,6 +49,7 @@ make_offsets("2022.3")
 # ActiveListDirty =         instance_destroy
 
 # WADBase =                 Process Chunk: %s   %u  (%4.2fMB)\n
+# YYHeader =                Process Chunk: %s   %u  (%4.2fMB)\n -> case 0x384E4547, qword assigned to a1
 # YYString =                ID_STRG\n -> the qword
 # YYStringCount =           ID_STRG\n -> the dword
 # GameFileLength =          initialise everything! -> xrefs -> the dword
@@ -56,4 +72,3 @@ make_offsets("2022.3")
 # cinstance_structvarsmap = variable_instance_get_names
 
 # ALL INSTANCE (OR ROOM) RELATED OFFSETS ARE STORED IN THEIR GETTER FUNCTIONS (x, y, ...)
-# FROM IMAGE_INDEX TO VSPEED OFFSETS INCREMENT BY 0x4

@@ -3,9 +3,6 @@ from ..structure import Structure
 class CCode(Structure):
     def __init__(self, memory, address):
         super().__init__(memory, address)
-
-        self.saved_length = 0
-        self.saved_ptr = 0x0
     
     @property
     def offset(self):
@@ -26,7 +23,7 @@ class CCode(Structure):
         self.memory.write_int(self + 0xA0, value)
         self.memory.write_int(vmbuffer + 0xC, value)
 
-        flags = self.get_codeindex() & 0x80000000 | ((4 if value == 0 else 0) >> 13)
+        flags = (self.get_codeindex() & 0x80000000) | 2 | 4 | 8
         self.memory.write_int(self + 0xA8, flags)
     
     @property
@@ -50,32 +47,17 @@ class CCode(Structure):
     def get_codeindex(self):
         return self.memory.read_int(self + 0x88)
     
-    def save_bytecode(self):
-        if self.saved_ptr: return
-
+    def get_vmbuffer(self):
         vmbuffer = self.memory.read_ptr(self + 0x68)
 
-        size = self.memory.read_int(vmbuffer + 0x8)
-        buffer = self.memory.read_ptr(vmbuffer + 0x18)
-
-        self.saved_length = size
-        self.saved_ptr = buffer
-
-    def reset_bytecode(self):
-        if not self.saved_ptr: return
-
-        vmbuffer = self.memory.read_ptr(self + 0x68)
-
-        buffer = self.memory.read_ptr(vmbuffer + 0x18)
-        self.memory.free(buffer)
-
-        success = self.memory.write_int(vmbuffer + 0x8, self.saved_length)
-        success = success and self.memory.write_ptr(vmbuffer + 0x18, self.saved_ptr)
-
-        return success
+        if not vmbuffer:
+            vmbuffer = self.memory.executor.allocate_structure(0x30, "VMBuffer")
+            self.memory.write_ptr(self + 0x68, vmbuffer)
+        
+        return vmbuffer
     
     def get_bytecode(self):
-        vmbuffer = self.memory.read_ptr(self + 0x68)
+        vmbuffer = self.get_vmbuffer()
 
         size = self.memory.read_int(vmbuffer + 0x8)
         buffer = self.memory.read_ptr(vmbuffer + 0x18)
@@ -86,12 +68,16 @@ class CCode(Structure):
         newsize = len(bytecode)
         newbuffer = self.memory.executor.allocate(newsize)
 
-        self.save_bytecode()
-
-        vmbuffer = self.memory.read_ptr(self + 0x68)
+        vmbuffer = self.get_vmbuffer()
 
         success = self.memory.write_int(vmbuffer + 0x8, newsize)
         success = success and self.memory.write_bytes(newbuffer, bytecode)
         success = success and self.memory.write_ptr(vmbuffer + 0x18, newbuffer)
 
         return success
+    
+    def get_func(self):
+        return self.memory.read_ptr(self.address + 0x90)
+    
+    def set_func(self, func):
+        return self.memory.write_ptr(self.address + 0x90, func)

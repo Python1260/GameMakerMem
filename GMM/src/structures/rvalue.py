@@ -25,14 +25,14 @@ class RValue(Structure):
         value = None
 
         if kind is None:
-            kind = self.get_kind()
+            kind = self.get_kind() & 0xFFFFFF
 
         if kind == RVALUE_REAL:
             value = self.memory.read_double(self + 0x0)
             
         elif kind == RVALUE_STRING:
             ptr = self.memory.read_ptr(self + 0x0)
-            length = self.memory.read_int(ptr + 0xC)
+            length = self.memory.read_int(ptr + 0xC) & 0x7FFFFFFF
             value = self.memory.read_string(self.memory.read_ptr(ptr), length=length)
 
         elif kind == RVALUE_ARRAY:
@@ -81,7 +81,7 @@ class RValue(Structure):
         from .objectbase import ObjectBase
 
         result = False
-        prevkind = self.get_kind()
+        prevkind = self.get_kind() & 0xFFFFFF
 
         if kind is None:
             kind = RVALUE_UNDEFINED

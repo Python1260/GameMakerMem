@@ -39,30 +39,30 @@ class Executor():
         self.declaredfunctions = declaredfunctions
 
         def gcfilter(game_context):
-            game_context.UsingGMLv2 = self.memory.is_version_atleast(2, 3)
-            game_context.Bytecode14OrLower = not self.memory.is_version_atleast(2)
-            game_context.UsingGMS2OrLater = self.memory.is_version_atleast(2)
-            game_context.UsingStringRealOptimizations = self.memory.is_version_atleast(2)
-            game_context.UsingFinallyBeforeThrow = not self.memory.is_version_atleast(2024, 6)
-            game_context.UsingTypedBooleans = self.memory.is_version_atleast(2, 3, 7)
-            game_context.UsingNullishOperator = self.memory.is_version_atleast(2, 3, 7) 
-            game_context.UsingAssetReferences = self.memory.is_version_atleast(2023, 8)
-            game_context.UsingRoomInstanceReferences = self.memory.is_version_atleast(2024, 2) 
-            game_context.UsingFunctionScriptReferences = self.memory.is_version_atleast(2024, 2) 
-            game_context.UsingNewFunctionResolution = self.memory.is_version_atleast(2024, 13) 
-            game_context.UsingLongCompoundBitwise = self.memory.is_version_atleast(2, 3, 2) 
-            game_context.UsingExtraRepeatInstruction = not self.memory.is_version_atleast(2022, 11)
-            game_context.UsingConstructorSetStatic = self.memory.is_version_atleast(2024, 11) 
-            game_context.UsingReentrantStatic = not self.memory.is_version_atleast(2024, 11)
-            game_context.UsingNewFunctionVariables = self.memory.is_version_atleast(2024, 2) 
-            game_context.UsingSelfToBuiltin = self.memory.is_version_atleast(2024, 2) 
-            game_context.UsingGlobalConstantFunction = self.memory.is_version_atleast(2023, 11) 
-            game_context.UsingObjectFunctionForesight = self.memory.is_version_atleast(2024, 11) 
-            game_context.UsingBetterTryBreakContinue = self.memory.is_version_atleast(2024, 11) 
-            game_context.UsingBuiltinDefaultArguments = self.memory.is_version_atleast(2024, 11) 
-            game_context.UsingNewArrayOwners = self.memory.is_version_atleast(2, 3, 2) 
-            game_context.UsingOptimizedFunctionDeclarations = self.memory.is_version_atleast(2024, 14)
-            game_context.UsingNewChainedFunctionArgumentOrder = self.memory.is_version_atleast(2024, 14, 4)
+            game_context.UsingGMLv2 = self.memory.context.is_version_atleast(2, 3)
+            game_context.Bytecode14OrLower = not self.memory.context.is_version_atleast(2)
+            game_context.UsingGMS2OrLater = self.memory.context.is_version_atleast(2)
+            game_context.UsingStringRealOptimizations = self.memory.context.is_version_atleast(2)
+            game_context.UsingFinallyBeforeThrow = not self.memory.context.is_version_atleast(2024, 6)
+            game_context.UsingTypedBooleans = self.memory.context.is_version_atleast(2, 3, 7)
+            game_context.UsingNullishOperator = self.memory.context.is_version_atleast(2, 3, 7) 
+            game_context.UsingAssetReferences = self.memory.context.is_version_atleast(2023, 8)
+            game_context.UsingRoomInstanceReferences = self.memory.context.is_version_atleast(2024, 2) 
+            game_context.UsingFunctionScriptReferences = self.memory.context.is_version_atleast(2024, 2) 
+            game_context.UsingNewFunctionResolution = self.memory.context.is_version_atleast(2024, 13) 
+            game_context.UsingLongCompoundBitwise = self.memory.context.is_version_atleast(2, 3, 2) 
+            game_context.UsingExtraRepeatInstruction = not self.memory.context.is_version_atleast(2022, 11)
+            game_context.UsingConstructorSetStatic = self.memory.context.is_version_atleast(2024, 11) 
+            game_context.UsingReentrantStatic = not self.memory.context.is_version_atleast(2024, 11)
+            game_context.UsingNewFunctionVariables = self.memory.context.is_version_atleast(2024, 2) 
+            game_context.UsingSelfToBuiltin = self.memory.context.is_version_atleast(2024, 2) 
+            game_context.UsingGlobalConstantFunction = self.memory.context.is_version_atleast(2023, 11) 
+            game_context.UsingObjectFunctionForesight = self.memory.context.is_version_atleast(2024, 11) 
+            game_context.UsingBetterTryBreakContinue = self.memory.context.is_version_atleast(2024, 11) 
+            game_context.UsingBuiltinDefaultArguments = self.memory.context.is_version_atleast(2024, 11) 
+            game_context.UsingNewArrayOwners = self.memory.context.is_version_atleast(2, 3, 2) 
+            game_context.UsingOptimizedFunctionDeclarations = self.memory.context.is_version_atleast(2024, 14)
+            game_context.UsingNewChainedFunctionArgumentOrder = self.memory.context.is_version_atleast(2024, 14, 4)
 
         self.compiler.init(strings=strings, variables=variables, functions=functions, instance_variables=instance_variables, assets=assets, declaredfunctions=declaredfunctions, gcfilter=gcfilter)
     
@@ -88,6 +88,13 @@ class Executor():
     def allocate(self, size):
         return self.MemoryAlloc(size, True, 0, 1)
     
+    def allocate_structure(self, size, name):
+        address = self.allocate(size)
+
+        self.memory.write_ptr(address, self.memory.base + getattr(self.memory, f"_vftable__{name}"))
+
+        return address
+    
     def reallocate(self, address, size):
         if not address:
             return self.allocate(size)
@@ -109,12 +116,13 @@ class Executor():
         address = self.allocate(0xB8)
         ccode = CCode(self.memory, self.NewCCode(address, 0, 0))
 
-        globaltable = self.memory.read_ptr(self.memory.base + self.memory.GlobalTable)
+        globaltable = self.memory.context.get_globaltable()
 
         result = RValue.new(self.memory, None)
         result.set_value(None)
 
         ccode.set_bytecode(bytecode)
+        ccode.set_func(0x0) # to make this actually work with YYC
         ccode.locals = 1
         ccode.args = 0
         ccode.offset = 0
@@ -157,10 +165,9 @@ class Executor():
         status = self.ExecuteIt(globaltable, globaltable, ccode, result, 0)
         resultvalue = result.get_value()
 
-        ccode.reset_bytecode()
         result.destroy()
 
-        if status != 1:
+        if status < 1:
             return 2, resultvalue
 
         return 0, resultvalue

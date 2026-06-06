@@ -5,7 +5,7 @@ class Scanner():
     def __init__(self, memory):
         self.memory = memory
 
-    def scan(self, pattern, module=None, return_multiple=False):
+    def scan(self, pattern, module=None, return_multiple=False, signint=False):
         isstr = isinstance(pattern, str)
 
         if isstr:
@@ -58,18 +58,18 @@ class Scanner():
         start = pattern.find("x") // 2
         end = (pattern.rfind("x") + 1) // 2
 
-        if start and end:
-            results = []
+        if start != -1 and end != -1:
+            values = []
 
             for match in matches:
-                data = self.memory.read_bytes(match + start, end - start)
-                result = int.from_bytes(data, "little")
+                data = self.memory.read_bytes(match + start, end - start) if match is not None else b"\x00"
+                value = int.from_bytes(data, "little", signed=signint)
 
-                results.append(result)
-        else:
-            results = matches
+                values.append(value)
+            
+            return (matches[0], values[0]) if not return_multiple else (matches, values)
 
-        return results[0] if not return_multiple else results
+        return matches[0] if not return_multiple else matches
     
     def get_module(self, name, prop=None):
         if isinstance(name, int):
@@ -117,36 +117,3 @@ class Scanner():
                 return start, size
         
         return 0, 0
-    
-    def get_version(self):
-        codestart, codesize = self.get_module_section(self.memory.module, ".text")
-
-        occurence = self.scan(
-            "41 B9 ?? ?? ?? ?? C7 44 24 20 ?? ?? ?? ?? BA ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? 45 8D 41 ?? E8 ?? ?? ?? ?? 48 8B 15 ?? ?? ?? ?? 48 85 D2 0F 84 ?? ?? ?? ??",
-            module=(codestart, codestart + codesize)
-        )
-
-        if occurence:
-            data = self.memory.read_bytes(occurence, 51)
-
-            a = int.from_bytes(data[2:6], "little")
-            b = int.from_bytes(data[10:14], "little")
-            c = int.from_bytes(data[15:19], "little")
-            d = a + data[29]
-
-            return f"{c}.{d}.{a}.{b}"
-        
-        occurence = self.scan(
-            "48 8D 05 ?? ?? ?? ?? 48 89 44 24 38 C7 44 24 30 ?? ?? ?? ?? 48 89 5C 24 28 C7 44 24 20 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 85 C0 74",
-            module=(codestart, codestart + codesize)
-        )
-
-        if occurence:
-            data = self.memory.read_bytes(occurence, 49)
-
-            a = int.from_bytes(data[16:20], "little")
-            b = int.from_bytes(data[29:33], "little")
-
-            return f"{b}.{a}"
-        
-        return "0"

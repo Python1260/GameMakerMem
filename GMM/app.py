@@ -1,25 +1,24 @@
+import os
 import sys
 
 from src.memory import Memory
 from src.ui import MainWindow, QApplication
 from src.settings.types import *
 
+LOCALAPPDATA = os.getenv("LOCALAPPDATA")
+
 class App():
     def __init__(self):
         self.name = "GameMakerMem"
-        self.version = "1.0.0"
+        self.version = "2.0.0"
         self.icon = "assets/images/icon.png"
         self.size = (500, 700)
+
+        self.path = os.path.join(LOCALAPPDATA, self.name)
+        os.makedirs(self.path, exist_ok=True)
         
         self.memory = None
         self.mainwindow = None
-
-        self.base_variables = [
-            "id", "object_index", "sprite_index",
-            "x", "y",
-            "image_index", "image_speed", "image_xscale", "image_yscale", "image_angle", "image_blend", "image_alpha",
-            "visible", "depth"
-        ]
 
         self.instances = []
         self.current_instance = None
@@ -115,10 +114,11 @@ class App():
     def init_attach(self):
         if not self.memory: return
 
+        self.memory.context.init()
         strings, variables, functions, instance_variables, assets, declaredfunctions = self.memory.context.get_gamecontext()
 
         self.memory.executor.init(strings, variables, functions, instance_variables, assets, declaredfunctions)
-        self.ui_execute_input.init(assets)
+        self.ui_execute_input.init(variables, functions, assets)
 
         self.init_room()
     
@@ -153,6 +153,11 @@ class App():
 
         prev_inst = self.instances
 
+        globalinstance = self.memory.context.get_globaltable()
+        globaltext = "Instance GLOBAL"
+
+        self.ui_instance_list.add(globaltext, globalinstance)
+
         for instance in self.instances:
             deactive = instance.get_deactive()
             text = f"Instance {instance.id} ({self.memory.context.get_assetname(*instance.object_index)}) {"(deactive)" if deactive else ""}"
@@ -161,6 +166,8 @@ class App():
 
             QApplication.processEvents()
             if self.instances != prev_inst or self.mainwindow.closed: break
+        
+        self.instances.append(globalinstance)
         
         self.init_variables()
 
@@ -174,7 +181,7 @@ class App():
         self.ui_variable_dict.clear()
         self.ui_attach_input.deselect()
 
-        variables = self.base_variables + sorted(self.current_instance.get_variables())
+        variables = sorted(self.current_instance.get_variables())
 
         prev_inst = self.current_instance
 
@@ -243,6 +250,8 @@ class App():
             self.current_instance = None
             return
         
+        if self.current_instance.id < 100000: return
+        
         self.memory.context.instance_destroy(self.current_instance)
         self.current_instance = None
 
@@ -276,8 +285,10 @@ class App():
                 self.ui_execute_input.text = file.read()
 
     def reset(self):
-        self.memory.executor.init()
+        self.memory.executor.init([], {}, {}, {}, [], 0)
         self.ui_execute_input.init()
+        
+        self.ui_execute_status.text = "..."
 
         self.instances = []
         self.current_instance = None

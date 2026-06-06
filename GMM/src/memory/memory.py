@@ -1,21 +1,30 @@
+import os
 import pymem
 import psutil
 import ctypes
-from ctypes import wintypes
 import threading
+import hashlib
 
 from .scanner import Scanner
+from .dumper import Dumper
 from ..globalcontext import GlobalContext
 from ..executor import Executor
-from ..settings.offsets import get_offset, has_offsets
+from ..settings.offsets import get_offset, has_offsets, offsets_to_file, offsets_from_file
 
 kernel32 = ctypes.windll.kernel32
+
+def getfilehash(filename):
+    with open(filename, "rb") as file:
+        digest = hashlib.file_digest(file, "md5")
+    
+    return digest.hexdigest()
 
 class Memory():
     def __init__(self, app, name=""):
         self.app = app
         
         self.scanner = Scanner(self)
+        self.dumper = Dumper(self)
         self.context = GlobalContext(self)
         self.executor = Executor(self)
 
@@ -30,6 +39,9 @@ class Memory():
         self.pid = 0
         self.handle = None
         self.base = 0x0
+        self.size = 0x0
+        self.is_64bit = True
+        self.ptrsize = 0x8
 
     def __getattr__(self, name):
         return get_offset(self.version, name)
@@ -60,9 +72,12 @@ class Memory():
 
             self.pid = self.process.process_id
             self.handle = self.process.process_handle
-            self.base = self.process.base_address
+            self.base = self.module.lpBaseOfDll
+            self.size = self.module.SizeOfImage
+            self.is_64bit = self.process.is_64_bit
+            self.ptrsize = 0x8 if self.is_64bit else 0x4
 
-            self.version = self.scanner.get_version()
+            self.version = getfilehash(self.module.filename)
 
             if self.detached_callback:
                 def worker(handle=self.handle, callback=self.detached_callback):
@@ -70,6 +85,17 @@ class Memory():
                     callback()
                 
                 threading.Thread(target=worker, daemon=True).start()
+
+            offsetpath = os.path.join(self.app.path, f"{self.version}.json")
+
+            if not has_offsets(self.version):
+                if not os.path.exists(offsetpath):
+                    offsets = self.dumper.dump()
+
+                    if offsets:
+                        offsets_to_file(offsetpath, offsets)
+
+                offsets_from_file(offsetpath)
 
             return True
     
@@ -82,28 +108,6 @@ class Memory():
     
     def on_detached(self, callback):
         self.detached_callback = callback
-    
-    def is_version_atleast(self, major, minor=0, release=0, build=0):
-        elements = self.version.split(".")
-
-        majorver = int(elements[0])
-        minorver = int(elements[1]) if len(elements) > 1 else 0
-        releasever = int(elements[2]) if len(elements) > 2 else 0
-        buildver = int(elements[3]) if len(elements) > 3 else 0
-
-        if majorver != major:
-            return majorver > major
-        
-        if minorver != minor:
-            return minorver > minor
-        
-        if releasever != release:
-            return releasever > release
-        
-        if buildver != build:
-            return buildver > build
-        
-        return True
     
     def allocate(self, size):
         try:
@@ -159,22 +163,29 @@ class Memory():
     
     def read_ptr(self, address):
         try:
-            return self.process.read_ulonglong(address)
+            return (self.process.read_ulonglong if self.is_64bit else self.process.read_uint)(address)
         except:
             return 0x0
     
     def write_ptr(self, address, value):
         try:
-            self.process.write_ulonglong(address, int(value))
+            (self.process.write_ulonglong if self.is_64bit else self.process.write_uint)(address, int(value))
             return True
         except:
             return False
     
     def read_number(self, address):
-        return self.read_ptr(address)
+        try:
+            return self.process.read_ulonglong(address)
+        except:
+            return 0x0
     
     def write_number(self, address, value):
-        return self.write_ptr(address, value)
+        try:
+            self.process.write_ulonglong(address, int(value))
+            return True
+        except:
+            return False
         
     def read_int(self, address):
         try:

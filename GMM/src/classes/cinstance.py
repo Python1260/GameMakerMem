@@ -5,6 +5,13 @@ from ..settings.types import *
 class CInstance(ObjectBase):
     def __init__(self, memory, address):
         super().__init__(memory, address)
+
+        self.base_variables = [
+            "id", "object_index", "sprite_index",
+            "x", "y",
+            "image_index", "image_speed", "image_xscale", "image_yscale", "image_angle", "image_blend", "image_alpha",
+            "visible", "depth"
+        ]
     
     def get_next(self):
         ptr = self.memory.read_ptr(self + 0x198)
@@ -30,6 +37,9 @@ class CInstance(ObjectBase):
         self.set_flags(IFLAGS_SIMPLEDRAW, False)
 
         return super().set_variable(name, value)
+    
+    def get_variables(self):
+        return super().get_variables() + self.base_variables
     
     id = Structure.int_prop(0xB4, True)
 
@@ -59,16 +69,5 @@ class CInstance(ObjectBase):
 
     x = Structure.float_prop("x")
     y = Structure.float_prop("y")
-    xstart = Structure.float_prop("xstart")
-    ystart = Structure.float_prop("ystart")
-    xprevious = Structure.float_prop("xprevious")
-    yprevious = Structure.float_prop("yprevious")
-
-    direction = Structure.float_prop("direction")
-    speed = Structure.float_prop("speed")
-    friction = Structure.float_prop("friction")
-    gravity = Structure.float_prop("gravity")
-    hspeed = Structure.float_prop("hspeed")
-    vspeed = Structure.float_prop("vspeed")
 
     depth = Structure.float_prop("depth")

@@ -1,10 +1,114 @@
 from .classes import CRoom, CScript
-from .structures import HashMap
+from .structures import HashMap, ObjectBase
 from .settings.types import *
 
 class GlobalContext():
     def __init__(self, memory):
         self.memory = memory
+
+        self.chunks = {}
+
+        self.majorver = 0
+        self.minorver = 0
+        self.releasever = 0
+        self.buildver = 0
+
+    def init(self):
+        self.chunks = self.get_chunks()
+
+        detectedver = self.get_version()
+
+        if "UILR" in self.chunks:
+            detectedver = (2024, 13, 0, 0)
+        elif "PSEM" in self.chunks:
+            detectedver = (2023, 2, 0, 0)
+        elif "FEAT" in self.chunks:
+            detectedver = (2022, 8, 0, 0)
+        elif "FEDS" in self.chunks:
+            detectedver = (2, 3, 6, 0)
+        elif "SEQN" in self.chunks:
+            detectedver = (2, 3, 0, 0)
+        elif "TGIN" in self.chunks:
+            detectedver = (2, 2, 1, 0)
+
+        self.majorver, self.minorver, self.releasever, self.buildver = detectedver
+    
+    def get_chunks(self):
+        wad = self.memory.read_ptr(self.memory.base + self.memory.WADBase)
+        wadend = self.memory.read_ptr(self.memory.base + self.memory.WADEnd)
+
+        chunks = {}
+
+        i = wad
+
+        while i < wadend:
+            chunk = self.memory.read_string(i, length=0x4)
+            length = self.memory.read_int(i + 0x4)
+
+            i += 0x8
+            if chunk == "FORM":
+                continue
+        
+            chunks[chunk] = i
+
+            i += length
+        
+        return chunks
+    
+    def get_chunk_values(self, chunkname):
+        wad = self.memory.read_ptr(self.memory.base + self.memory.WADBase)
+
+        chunkaddr = self.chunks[chunkname]
+
+        chunkvalues = []
+
+        if chunkname in ("OBJT", "SPRT", "SOND", "ROOM", "BGND", "PATH", "SCPT", "FONT", "TMLN", "SHDR"):
+            count = self.memory.read_int(chunkaddr)
+
+            for j in range(count):
+                offset = self.memory.read_int(chunkaddr + 0x4 + j * 0x4)
+                pname = self.memory.read_int(wad + offset)
+
+                string = self.memory.read_string(wad + pname)
+
+                chunkvalues.append(string)
+        elif chunkname in ("ACRV", "SEQN", "PSYS"):
+            count = self.memory.read_int(chunkaddr + 0x4)
+
+            for j in range(count):
+                offset = self.memory.read_int(chunkaddr + 0x8 + j * 0x4)
+                pname = self.memory.read_int(wad + offset)
+
+                string = self.memory.read_string(wad + pname)
+
+                chunkvalues.append(string)
+        
+        return chunkvalues
+
+    def get_version(self):
+        yyheader = self.memory.read_ptr(self.memory.base + self.memory.YYHeader)
+
+        majorver = self.memory.read_int(yyheader + 0x2C)
+        minorver = self.memory.read_int(yyheader + 0x30)
+        releasever = self.memory.read_int(yyheader + 0x34)
+        buildver = self.memory.read_int(yyheader + 0x38)
+
+        return majorver, minorver, releasever, buildver
+    
+    def is_version_atleast(self, major, minor=0, release=0, build=0):
+        if self.majorver != major:
+            return self.majorver > major
+        
+        if self.minorver != minor:
+            return self.minorver > minor
+        
+        if self.releasever != release:
+            return self.releasever > release
+        
+        if self.buildver != build:
+            return self.buildver > build
+        
+        return True
     
     def get_room(self):
         ptr = self.memory.read_ptr(self.memory.base + self.memory.RunRoom)
@@ -16,6 +120,14 @@ class GlobalContext():
     
     def get_fps(self):
         return self.memory.read_int(self.memory.base + self.memory.Fps)
+    
+    def get_globaltable(self):
+        ptr = self.memory.read_ptr(self.memory.base + self.memory.GlobalTable)
+        globaltable = ObjectBase(self.memory, ptr)
+
+        globaltable.id = -5
+
+        return globaltable
 
     def get_builtinvarlookup(self):
         ptr = self.memory.read_ptr(self.memory.base + self.memory.builtinVarLookup)
@@ -31,10 +143,12 @@ class GlobalContext():
         the_functions = self.memory.read_ptr(self.memory.base + self.memory.the_functions)
         the_numb = self.memory.read_int(self.memory.base + self.memory.the_numb)
 
+        doderef = self.memory.base < self.memory.read_ptr(the_functions + 0x0) < (self.memory.base + self.memory.size)
+
         for i in range(the_numb):
             ptr = the_functions + i * self.memory.the_functions_size
-            name = self.memory.read_string(self.memory.read_ptr(ptr + 0x0) if self.memory.the_functions_deref else ptr + 0x0)
-            args = self.memory.read_int(ptr + self.memory.the_functions_argnumb)
+            name = self.memory.read_string(self.memory.read_ptr(ptr + 0x0) if doderef else ptr + 0x0)
+            args = self.memory.read_int(ptr + self.memory.the_functions_size - 0x8)
 
             if args == 0xFFFFFFFF: args = -1
 
@@ -44,16 +158,17 @@ class GlobalContext():
         return funcs
     
     def get_refname(self, rtype):
-        refs = self.memory.base + self.memory.name2ref
+        if self.memory.context.is_version_atleast(2023, 8):
+            refs = self.memory.base + self.memory.name2ref
 
-        for i in range(0x20):
-            ptr = refs + i * 0x10
+            for i in range(0x20):
+                ptr = refs + i * 0x10
 
-            r = self.memory.read_int(ptr + 0x8)
+                r = self.memory.read_int(ptr + 0x8)
 
-            if rtype == r:
-                name = self.memory.read_string(self.memory.read_ptr(ptr))
-                return name
+                if rtype == r:
+                    name = self.memory.read_string(self.memory.read_ptr(ptr))
+                    return name
         
         if rtype in NAME2REF:
             return NAME2REF[rtype]
@@ -62,53 +177,27 @@ class GlobalContext():
     
     def get_assetname(self, rtype, rid):
         if rid == 0xFFFFFFFF: return "noone"
-        
-        name = str(rid)
+        if rid > 100000: return "instance"
 
-        if rtype == REF_OBJECT:
-            ptr = self.memory.read_ptr(self.memory.base + self.memory.ObjectHash)
-            elements = self.memory.read_ptr(ptr + 0x0)
-            mask = self.memory.read_int(ptr + 0x8)
+        if rtype in CHUNK2REF:
+            chunkname = CHUNK2REF[rtype]
+            chunkvalues = self.get_chunk_values(chunkname)
 
-            link = elements + (rid & mask) * 0x10
-            node = self.memory.read_ptr(link + 0x0)
+            if rid < len(chunkvalues):
+                return chunkvalues[rid]
+            else:
+                return "..."
 
-            while node:
-                mid = self.memory.read_int(node + 0x10)
-
-                if mid == rid:
-                    mobj = self.memory.read_ptr(node + 0x18)
-                    name = self.memory.read_string(self.memory.read_ptr(mobj + 0x0))
-                    break
-
-                node = self.memory.read_ptr(node + 0x8)
-        else:
-            ptr = None
-
-            if rtype == REF_SPRITE:
-                ptr = self.memory.read_ptr(self.memory.base + self.memory.SpriteNames)
-            elif rtype == REF_ROOM:
-                ptr = self.memory.read_ptr(self.memory.base + self.memory.RoomNames)
-
-            if ptr is not None:
-                mobj = ptr + rid * 0x8
-                name = self.memory.read_string(self.memory.read_ptr(mobj + 0x0))
-
-        
-        if name == "": name = "..."
-
-        return name
+        return str(rid)
     
     def get_codevariablename(self, k):
-        array = self.memory.read_ptr(self.memory.base + self.memory.VarNamesInstanceArray)
+        variables = self.memory.executor.instance_variables
 
-        objind = k - 100000
-        if objind < 0: return "[undefined]"
+        for varname, varid in variables.items():
+            if varid == k:
+                return varname
 
-        ptr = array + objind * 0x8
-        name = self.memory.read_string(self.memory.read_ptr(ptr))
-
-        return name
+        return "[unknown variable]"
     
     def get_gamecontext(self):
         wad = self.memory.read_ptr(self.memory.base + self.memory.WADBase)
@@ -125,50 +214,29 @@ class GlobalContext():
 
             strings.append(string)
         
-        variables = self.get_builtinvarlookup().get_elements()
+        builtin_variables = self.get_builtinvarlookup().get_elements()
+        gvcount = self.memory.read_int(self.memory.base + self.memory.StartGlobalVariables)
+        variables = { vname: (vid, vid >= gvcount) for vname, vid in builtin_variables.items() }
+
         functions = self.get_thefunctions()
         
         instance_variables = self.get_instancevarlookup().get_elements()
         
         assets = []
 
-        gamefilelength = self.memory.read_int(self.memory.base + self.memory.GameFileLength)
-        gamefilebuffer = self.memory.read_ptr(self.memory.base + self.memory.GameFileBuffer)
+        for chunkname in self.chunks.keys():
+            chunkvalues = self.get_chunk_values(chunkname)
 
-        i = 0
+            for idx, chunkvalue in enumerate(chunkvalues):
+                if chunkname == "SCPT":
+                    chunkvalue = chunkvalue.removeprefix("gml_Script_")
 
-        while i < gamefilelength:
-            chunk = self.memory.read_string(gamefilebuffer + i, length=0x4)
-            length = self.memory.read_int(gamefilebuffer + i + 0x4)
+                    if chunkvalue.startswith(("anon_", "___struct___", "____struct___")) or "gml_Object_" in chunkvalue:
+                        continue
 
-            i += 0x8
-            if chunk == "FORM":
-                continue
+                asset = (chunkname, idx, chunkvalue)
 
-            if chunk in ("OBJT", "SPRT", "SOND", "ROOM", "BGND", "PATH", "SCPT", "FONT", "TMLN", "SHDR"):
-                count = self.memory.read_int(gamefilebuffer + i)
-
-                for j in range(count):
-                    offset = self.memory.read_int(gamefilebuffer + i + 0x4 + j * 0x4)
-                    pname = self.memory.read_int(wad + offset)
-                    if not pname: continue
-
-                    string = self.memory.read_string(wad + pname)
-
-                    assets.append((chunk, j, string))
-            elif chunk in ("ACRV", "SEQN", "PSYS"):
-                count = self.memory.read_int(gamefilebuffer + i + 0x4)
-
-                for j in range(count):
-                    offset = self.memory.read_int(gamefilebuffer + i + 0x8 + j * 0x4)
-                    pname = self.memory.read_int(wad + offset)
-                    if not pname: continue
-
-                    string = self.memory.read_string(wad + pname)
-
-                    assets.append((chunk, j, string))
-
-            i += length
+                assets.append(asset)
 
         declaredfunctions = self.memory.read_int(self.memory.base + self.memory.ScriptMainNumber)
 
@@ -188,9 +256,9 @@ class GlobalContext():
 
         self.memory.write_ptr(declaredfunctionarray + declaredfunctions * 0x8, newcscript.address)
         self.memory.write_int(self.memory.base + self.memory.ScriptMainNumber, declaredfunctions + 1)
-        self.memory.write_int(self.memory.base + self.memory.ScriptMainItemsCount, declaredfunctions + 1)
+        self.memory.write_int(self.memory.base + self.memory.ScriptMainItemsArray - 0x8, declaredfunctions + 1)
 
-        if self.memory.ScriptMainNames:
+        if not self.memory.context.is_version_atleast(2023, 8):
             newlength = len(name.encode("utf-8", errors="ignore"))
             newptr = self.memory.executor.allocate(newlength + 1)
             self.memory.write_string(newptr, name)
@@ -245,7 +313,7 @@ class GlobalContext():
         declaredfunctionarray = self.memory.executor.reallocate(declaredfunctionarray, (declaredfunctions + len(items)) * 0x8)
         self.memory.write_ptr(self.memory.base + self.memory.ScriptMainItemsArray, declaredfunctionarray)
 
-        if self.memory.ScriptMainNames:
+        if not self.memory.context.is_version_atleast(2024):
             declaredfunctionnames = self.memory.executor.reallocate(declaredfunctionnames, (declaredfunctions + len(items)) * 0x8)
             self.memory.write_ptr(self.memory.base + self.memory.ScriptMainNames, declaredfunctionnames)
 

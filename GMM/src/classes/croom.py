@@ -15,7 +15,7 @@ class CRoom(Structure):
         return LinkedList(self.memory, ptr, CInstance)
 
     def get_deactive(self):
-        ptr = self + self.memory.croom_deactive
+        ptr = self + self.memory.croom_active + 0x18
         return LinkedList(self.memory, ptr, CInstance)
     
     def get_instances(self):

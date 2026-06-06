@@ -10,8 +10,8 @@ import clr
 sys.path.append(os.path.dirname(__file__))
 clr.AddReference("Underanalyzer")
 
-from Underanalyzer.Mock import GameContextMock
-from Underanalyzer import AssetType
+from Underanalyzer.Mock import GameContextMock # type: ignore
+from Underanalyzer import AssetType # type: ignore
 
 CHUNK2ASSET = {
     "OBJT": AssetType.Object,
@@ -37,7 +37,7 @@ class Compiler():
     def __init__(self):
         self.game_context = None
 
-        self.constants_values = getfromfile("assets/data/constants_values.txt")
+        self.constants_values = getfromfile("assets/data/constants.txt")
         
         self.init()
     
@@ -51,8 +51,8 @@ class Compiler():
         for idx, string in enumerate(strings):
             self.game_context.DefineString(string, idx)
         
-        for name, idx in variables.items():
-            self.game_context.DefineBuiltinVariable(name, idx)
+        for name, data in variables.items():
+            self.game_context.DefineBuiltinVariable(name, data[0], True, data[1])
         
         for name, data in functions.items():
             self.game_context.DefineBuiltinFunction(name, data[0], data[1])
@@ -62,7 +62,7 @@ class Compiler():
 
         for idx, asset in enumerate(assets):
             if asset[0] == "SCPT":
-                self.game_context.DefineGlobalFunction(asset[2].removeprefix("gml_Script_"), 100000 + asset[1])
+                self.game_context.DefineGlobalFunction(asset[2], 100000 + asset[1])
             else:
                 self.game_context.DefineMockAsset(CHUNK2ASSET[asset[0]], asset[1], asset[2])
         

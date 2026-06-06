@@ -26,7 +26,7 @@ from .style import (
 
 def getfromfile(filename):
     with open(filename) as file:
-        return file.read().split("\n")
+        return [pair.split("=")[0] for pair in file.read().split("\n")]
 
 class CodeEditor(Widget):
     def __init__(self, *args, caption=""):
@@ -36,8 +36,6 @@ class CodeEditor(Widget):
         super().__init__(caption, textedit)
 
         self.statements = ["var", "if", "else", "while", "for", "break", "continue", "function", "return", "repeat", "until", "do", "or", "and", "xor", "div", "mod", "switch", "case", "default", "with", "exit", "try", "catch", "finally"]
-        self.variables = getfromfile("assets/data/variables.txt")
-        self.functions = getfromfile("assets/data/functions.txt")
         self.constants = getfromfile("assets/data/constants.txt")
 
         self.highlighter = CodeEditorHighlighter(
@@ -53,10 +51,10 @@ class CodeEditor(Widget):
                 "#FFF899": [(r"\bvar\s+([A-Za-z_][A-Za-z_0-9]*)", 1)],
 
                 # Builtin variables
-                "#58E55A": [] + self.variables,
+                "#58E55A": [],
 
                 # Statements and functions
-                "#FFB871": [r"\{", r"\}"] + self.statements + self.functions,
+                "#FFB871": [r"\{", r"\}"] + self.statements,
 
                 # Numbers and constants
                 "#FF8080": [r"(?<![A-Za-z_0-9])-?\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?(?![A-Za-z_0-9])"] + self.constants,
@@ -71,21 +69,24 @@ class CodeEditor(Widget):
 
         self.completer = CodeEditorCompleter(
             textedit,
-            self.statements + self.variables + self.functions + self.constants
+            self.statements + self.constants
         )
     
-    def init(self, assets=[]):
+    def init(self, variables={}, functions={}, assets=[]):
+        varnames = list(variables.keys())
+        funcnames = list(functions.keys())
+
         script_assets = []
         other_assets = []
 
         for asset in assets:
             if asset[0] == "SCPT":
-                script_assets.append(asset[2].removeprefix("gml_Script_"))
+                script_assets.append(asset[2])
             else:
                 other_assets.append(asset[2])
 
-        self.highlighter.init({"#FFB871": script_assets, "#FF8080": other_assets})
-        self.completer.init(script_assets + other_assets)
+        self.highlighter.init({ "#58E55A": varnames, "#FFB871": funcnames + script_assets, "#FF8080": other_assets })
+        self.completer.init(varnames + funcnames + script_assets + other_assets)
 
     @property
     def text(self):
