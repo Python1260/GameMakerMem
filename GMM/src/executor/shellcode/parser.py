@@ -26,7 +26,7 @@ class Parser():
             value = struct.pack("<d", value)
         elif isinstance(value, int):
             value = struct.pack("<Q", value)
-        else:
+        elif hasattr(value, "address"):
             value = struct.pack("<Q", value.address)
             
         return value
@@ -42,7 +42,7 @@ class Parser():
             value = None
 
         if value_type == bytes:
-            value = self.handler.memory.read_string(value).encode("utf-8", errors="ignore")
+            value = self.handler.memory.read_string(value).encode("utf-8", errors="ignore") # goofy
         elif value_type == str:
             value = self.handler.memory.read_string(value)
         

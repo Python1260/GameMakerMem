@@ -5,6 +5,11 @@ class StructVarsMap(Structure):
     def __init__(self, memory, address):
         super().__init__(memory, address)
     
+    def __str__(self):
+        return str(self.get_elements())
+    
+    __repr__ = __str__
+    
     def get_size(self):
         return self.memory.read_int(self + 0x0)
     

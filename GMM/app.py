@@ -13,7 +13,7 @@ class App():
         self.version = "2.0.0"
         self.icon = "assets/images/icon.png"
         self.size = (500, 700)
-        
+
         self.path = os.path.join(LOCALAPPDATA, self.name)
         os.makedirs(self.path, exist_ok=True)
         
@@ -156,7 +156,8 @@ class App():
         globalinstance = self.memory.context.get_globaltable()
         globaltext = "Instance GLOBAL"
 
-        self.ui_instance_list.add(globaltext, globalinstance)
+        if globalinstance:
+            self.ui_instance_list.add(globaltext, globalinstance)
 
         for instance in self.instances:
             deactive = instance.get_deactive()
@@ -167,7 +168,8 @@ class App():
             QApplication.processEvents()
             if self.instances != prev_inst or self.mainwindow.closed: break
         
-        self.instances.append(globalinstance)
+        if globalinstance:
+            self.instances.append(globalinstance)
         
         self.init_variables()
 

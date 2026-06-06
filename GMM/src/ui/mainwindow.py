@@ -94,6 +94,8 @@ class MainWindow(VBox):
         def parse(value):
             value = value.strip()
 
+            if value == "": return None
+
             if value.lower() == "true":
                 return True
             elif value.lower() == "false":
@@ -105,8 +107,6 @@ class MainWindow(VBox):
 
             if value.startswith("\"") and value.endswith("\""):
                 return value[1:-1]
-            elif value.startswith("[") and value.endswith("]"):
-                return [parse(subval) for subval in value[1:-1].split(",")]
             
             try:
                 return float(value)
@@ -116,7 +116,7 @@ class MainWindow(VBox):
         if editable:
             parsed = parse(value)
 
-            if isinstance(parsed, (bool, float, int, str, list)):
+            if isinstance(parsed, (bool, float, int, str)):
                 def edit(text):
                     if text == "": return
 
@@ -128,6 +128,7 @@ class MainWindow(VBox):
                 widget = Input(value)
                 widget.setCursorPosition(0)
                 widget.textChanged.connect(edit)
+                widget.returnPressed.connect(lambda : edit(widget.text))
             elif value.startswith("ref "):
                 widget = Button(f"ref {str(value).split(" ")[-1]}")
                 widget.clicked.connect(callback)

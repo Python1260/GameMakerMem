@@ -177,7 +177,6 @@ class GlobalContext():
     
     def get_assetname(self, rtype, rid):
         if rid == 0xFFFFFFFF: return "noone"
-        if rid > 100000: return "instance"
 
         if rtype in CHUNK2REF:
             chunkname = CHUNK2REF[rtype]
@@ -187,6 +186,8 @@ class GlobalContext():
                 return chunkvalues[rid]
             else:
                 return "..."
+        
+        if rid > 100000: return "instance"
 
         return str(rid)
     

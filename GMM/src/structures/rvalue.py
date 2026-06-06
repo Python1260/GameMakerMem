@@ -20,7 +20,7 @@ class RValue(Structure):
         return rvalue
     
     def get_value(self, kind=None):
-        from .objectbase import ObjectBase
+        from . import ObjectBase, ArrayBase
 
         value = None
 
@@ -37,17 +37,7 @@ class RValue(Structure):
 
         elif kind == RVALUE_ARRAY:
             ptr = self.memory.read_ptr(self + 0x0)
-
-            elements = self.memory.read_ptr(ptr + 0x8)
-            length = self.memory.read_int(ptr + 0x24)
-
-            value = []
-
-            for i in range(length):
-                sv = elements + i * 0x10
-                subvalue = RValue(self.memory, sv)
-
-                value.append(subvalue)
+            value = ArrayBase(self.memory, ptr)
             
         elif kind == RVALUE_POINTER:
             value = self.memory.read_ptr(self + 0x0)
@@ -78,10 +68,10 @@ class RValue(Structure):
         return value
     
     def set_value(self, value, kind=None):
-        from .objectbase import ObjectBase
+        from . import ObjectBase, ArrayBase
 
         result = False
-        prevkind = self.get_kind() & 0xFFFFFF
+        prevkind = self.get_kind()
 
         if kind is None:
             kind = RVALUE_UNDEFINED
@@ -98,10 +88,10 @@ class RValue(Structure):
                 kind = RVALUE_ARRAY
             elif isinstance(value, tuple):
                 kind = RVALUE_REF
-            elif isinstance(value, ObjectBase):
+            elif isinstance(value, dict):
                 kind = RVALUE_STRUCT
-        
-        self.set_kind(kind)
+            elif hasattr(value, "address"):
+                kind = RVALUE_STRUCT
 
         if kind == RVALUE_REAL:
             result = self.memory.write_double(self + 0x0, value)
@@ -111,7 +101,8 @@ class RValue(Structure):
                 ptr = self.memory.read_ptr(self + 0x0)
             else:
                 ptr = self.memory.executor.allocate(0x10)
-                self.memory.write_int(ptr + 0x8, 1)
+                self.memory.write_int(ptr + 0x8, 1) # i kinda forgot why...
+
                 self.memory.write_ptr(self + 0x0, ptr)
 
             newptr = self.memory.read_ptr(ptr)
@@ -123,24 +114,16 @@ class RValue(Structure):
             result = result and self.memory.write_int(ptr + 0xC, newlength)
 
         elif kind == RVALUE_ARRAY:
-            if prevkind == RVALUE_ARRAY:
-                ptr = self.memory.read_ptr(self + 0x0)
+            if isinstance(value, list):
+                if prevkind == RVALUE_ARRAY:
+                    ptr = self.memory.read_ptr(self + 0x0)
+                    prevvalue = ArrayBase(self.memory, ptr)
+                    
+                    result = prevvalue.set_all(value)
+                else:
+                    result = False # nuh uh
             else:
-                ptr = self.memory.executor.allocate(0x30)
-
-            elements = self.memory.read_ptr(ptr + 0x8)
-            length = len(value)
-            elements = self.memory.executor.allocate(len(value) * 0x10)
-
-            result = self.memory.write_int(ptr + 0x24, length)
-            result = self.memory.write_int(ptr + 0x28, length)
-            result = result and self.memory.write_ptr(ptr + 0x8, elements)
-
-            for i, v in enumerate(value):
-                sv = elements + i * 0x10
-                subvalue = RValue(self.memory, sv)
-
-                subvalue.set_value(v)
+                result = self.memory.write_ptr(self + 0x0, value.address)
             
         elif kind == RVALUE_POINTER:
             result = self.memory.write_ptr(self + 0x0, value)
@@ -149,7 +132,16 @@ class RValue(Structure):
             result = True
         
         elif kind == RVALUE_STRUCT:
-            result = self.memory.write_ptr(self + 0x0, value.address)
+            if isinstance(value, dict):
+                if prevkind == RVALUE_STRUCT:
+                    ptr = self.memory.read_ptr(self + 0x0)
+                    prevvalue = ObjectBase(self.memory, ptr)
+
+                    result = prevvalue.set_variables(value)
+                else:
+                    result = False # nuh uh again
+            else:
+                result = self.memory.write_ptr(self + 0x0, value.address)
 
         elif kind == RVALUE_INT32:
             result = self.memory.write_int(self + 0x0, value)
@@ -165,6 +157,9 @@ class RValue(Structure):
             number = rid | (rtype << 32)
 
             result = self.memory.write_number(self + 0x0, number)
+        
+        if result:
+            self.set_kind(kind)
 
         return result
     
