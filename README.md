@@ -15,22 +15,22 @@ Unfortunately, GMM does NOT support games made using GameMaker V1 or lower, ther
 
 ## NEW!
 GMM now has a special environment with it's own special gml functions, including:
-gml_wait
-gml_load
-gml_load_async
+* gml_wait
+* gml_load
+* gml_load_async
 
-debug_get_locals
-debug_get_self
-debug_get_other
-debug_get_script
+* debug_get_locals
+* debug_get_self
+* debug_get_other
+* debug_get_script
 
-array_freeze
-array_unfreeze
-array_frozen
+* array_freeze
+* array_unfreeze
+* array_frozen
 
-script_replace
+* script_replace
 
-http_get_direct
+* http_get_direct
 
 ---
 
