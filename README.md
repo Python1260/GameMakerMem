@@ -9,8 +9,28 @@ Uses [Underanalyzer's](https://github.com/UnderminersTeam/Underanalyzer) GML com
 
 Tested on **Pizza Tower** (*version 2022.1*) and **DELTARUNE** (*version 2022.3*), as well as on **GameMaker version 2024.13.3.268**.
 It does support more versions but they weren't necessarily tested.
-Unfortunately, GMM does NOT support games made using GameMaker V1 or lower, therefore it does not work on **UNDERTALE** (yet!).
+Unfortunately, GMM does NOT support games made using GameMaker V1 or lower, therefore it does not work with **UNDERTALE** (yet!).
 
+---
+
+## NEW!
+GMM now has a special environment with it's own special gml functions, including:
+gml_wait
+gml_load
+gml_load_async
+
+debug_get_locals
+debug_get_self
+debug_get_other
+debug_get_script
+
+array_freeze
+array_unfreeze
+array_frozen
+
+script_replace
+
+http_get_direct
 
 ---
 
