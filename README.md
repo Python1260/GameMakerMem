@@ -16,7 +16,7 @@ Unfortunately, GMM does NOT support games made using GameMaker V1 or lower, ther
 ## NEW!
 GMM now has a special environment with it's own special gml functions, including:
 * `gml_wait(t)` : makes the main thread wait `t` seconds.
-* `gml_load(src, self, other)` : executes the gml source `src` using `self` and `other`.
+* `gml_load(src, self, other)` : immediatly executes the gml source `src` using `self` and `other`.
 * `gml_load_safe(src, self, other)` : executes the gml source `src` using `self` and `other` on the main thread.
 
 * `debug_get_locals(l)` : gets the levels on the execution level `l` as a struct.
