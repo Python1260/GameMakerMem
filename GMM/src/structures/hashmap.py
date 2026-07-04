@@ -17,10 +17,11 @@ class HashMap(Structure):
 
         for i in range(self.get_size()):
             element = storage + i * 0x18
-            v = self.memory.read_int(element + 0x0)
-            k = self.memory.read_string(self.memory.read_ptr(element + 0x8))
             h = self.memory.read_int(element + 0x10)
             if h == 0: continue
+            
+            v = self.memory.read_int(element + 0x0)
+            k = self.memory.read_string(self.memory.read_ptr(element + 0x8))
 
             elements[k] = v
         

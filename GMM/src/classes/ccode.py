@@ -1,4 +1,6 @@
 from ..structure import Structure
+from ..settings.types import *
+from .vm import VMBuffer
 
 class CCode(Structure):
     def __init__(self, memory, address):
@@ -23,7 +25,8 @@ class CCode(Structure):
         self.memory.write_int(self + 0xA0, value)
         self.memory.write_int(vmbuffer + 0xC, value)
 
-        flags = (self.get_codeindex() & 0x80000000) | 2 | 4 | 8
+        # set some flags so it doesnt try to free nonexisting variables
+        flags = (self.get_codeindex() & CODE_ISCONSTRUCTOR) | CODE_FREELOCALS
         self.memory.write_int(self + 0xA8, flags)
     
     @property
@@ -48,36 +51,27 @@ class CCode(Structure):
         return self.memory.read_int(self + 0x88)
     
     def get_vmbuffer(self):
-        vmbuffer = self.memory.read_ptr(self + 0x68)
+        ptr = self.memory.read_ptr(self + 0x68)
+        vmbuffer = VMBuffer(self.memory, ptr)
 
         if not vmbuffer:
-            vmbuffer = self.memory.executor.allocate_structure(0x30, "VMBuffer")
+            vmbuffer = VMBuffer.new(self.memory)
             self.memory.write_ptr(self + 0x68, vmbuffer)
-        
-        return vmbuffer
+
+        return VMBuffer(self.memory, ptr)
     
     def get_bytecode(self):
         vmbuffer = self.get_vmbuffer()
 
-        size = self.memory.read_int(vmbuffer + 0x8)
-        buffer = self.memory.read_ptr(vmbuffer + 0x18)
-
-        return self.memory.read_bytes(buffer, size)
+        return vmbuffer.get_buffer()
     
     def set_bytecode(self, bytecode):
-        newsize = len(bytecode)
-        newbuffer = self.memory.executor.allocate(newsize)
-
         vmbuffer = self.get_vmbuffer()
 
-        success = self.memory.write_int(vmbuffer + 0x8, newsize)
-        success = success and self.memory.write_bytes(newbuffer, bytecode)
-        success = success and self.memory.write_ptr(vmbuffer + 0x18, newbuffer)
-
-        return success
+        return vmbuffer.set_buffer(bytecode)
     
     def get_func(self):
-        return self.memory.read_ptr(self.address + 0x90)
+        return self.memory.read_ptr(self + 0x90)
     
     def set_func(self, func):
-        return self.memory.write_ptr(self.address + 0x90, func)
+        return self.memory.write_ptr(self + 0x90, func)

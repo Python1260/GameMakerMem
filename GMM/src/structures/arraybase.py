@@ -1,5 +1,6 @@
 from ..structure import Structure
 from .rvalue import RValue
+from ..settings.types import *
 
 class ArrayBase(Structure):
     def __init__(self, memory, address):
@@ -11,13 +12,26 @@ class ArrayBase(Structure):
     __repr__ = __str__
     
     def get_size(self):
-        return self.memory.read_int(self + 0x24)
-    
-    def get_capacity(self):
-        return self.memory.read_int(self + 0x28)
+        return self.memory.read_int(self + self.memory.arraybase_size)
     
     def get_storage(self):
-        return self.memory.read_ptr(self + 0x8)
+        return self.memory.read_ptr(self + self.memory.arraybase_storage)
+    
+    def get_flags(self, mask):
+        flags = self.memory.read_int(self + self.memory.arraybase_flags)
+        return (flags & mask) != 0x0
+    
+    def set_flags(self, mask, status):
+        flags = self.memory.read_int(self + self.memory.arraybase_flags)
+        flags = (flags | mask) if status else (flags & ~mask)
+
+        return self.memory.write_int(self + self.memory.arraybase_flags, flags)
+
+    def get_immutable(self):
+        return self.get_flags(ARRAY_IMMUTABLE)
+    
+    def set_immutable(self, value):
+        return self.set_flags(ARRAY_IMMUTABLE, value)
 
     def get_elements(self):
         elements = []

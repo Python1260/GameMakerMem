@@ -1,5 +1,6 @@
 from ..structure import Structure
 from .ccode import CCode
+from ..settings.types import *
 
 class CScript(Structure):
     def __init__(self, memory, address):
@@ -24,6 +25,17 @@ class CScript(Structure):
     
     def set_code(self, value):
         return self.memory.write_ptr(self + 0x8, value.address)
+    
+    flags = Structure.int_prop(0x20)
+
+    def get_constructor(self):
+        return (self.flags & CODE_ISCONSTRUCTOR) != 0
+    
+    def set_constructor(self, value):
+        if value:
+            self.flags |= CODE_ISCONSTRUCTOR
+        else:
+            self.flags &= ~CODE_ISCONSTRUCTOR
     
     def copy(self):
         size = 0x38

@@ -45,11 +45,11 @@ class CInstance(ObjectBase):
 
     @property
     def object_index(self):
-        return (REF_OBJECT, self.memory.read_int(self.address + 0xB8))
+        return (REF_OBJECT, self.memory.read_int(self + 0xB8))
 
     @property
     def sprite_index(self):
-        return (REF_SPRITE, self.memory.read_int(self.address + 0xBC))
+        return (REF_SPRITE, self.memory.read_int(self + 0xBC))
     
     @property
     def visible(self):

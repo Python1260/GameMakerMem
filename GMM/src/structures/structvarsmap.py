@@ -23,11 +23,11 @@ class StructVarsMap(Structure):
 
         for i in range(self.get_size()):
             element = storage + i * 0x10
-            v = self.memory.read_ptr(element + 0x0)
-            k = self.memory.read_int(element + 0x8)
+
             h = self.memory.read_int(element + 0xC)
             if h == 0: continue
 
+            k = self.memory.read_int(element + 0x8)
             name = self.memory.context.get_codevariablename(k)
 
             elements.append(name)
@@ -39,15 +39,17 @@ class StructVarsMap(Structure):
 
         for i in range(self.get_size()):
             element = storage + i * 0x10
-            v = self.memory.read_ptr(element + 0x0)
-            k = self.memory.read_int(element + 0x8)
+
             h = self.memory.read_int(element + 0xC)
             if h == 0: continue
 
+            k = self.memory.read_int(element + 0x8)
             name = self.memory.context.get_codevariablename(k)
-            value = RValue(self.memory, v)
 
             if name == key:
+                v = self.memory.read_ptr(element + 0x0)
+                value = RValue(self.memory, v)
+
                 return value.get_value()
         
         return None
@@ -57,15 +59,16 @@ class StructVarsMap(Structure):
 
         for i in range(self.get_size()):
             element = storage + i * 0x10
-            v = self.memory.read_ptr(element + 0x0)
-            k = self.memory.read_int(element + 0x8)
             h = self.memory.read_int(element + 0xC)
             if h == 0: continue
 
+            k = self.memory.read_int(element + 0x8)
             name = self.memory.context.get_codevariablename(k)
-            value = RValue(self.memory, v)
 
             if name == key:
+                v = self.memory.read_ptr(element + 0x0)
+                value = RValue(self.memory, v)
+
                 return value.set_value(val)
         
         return False

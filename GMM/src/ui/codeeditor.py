@@ -37,6 +37,7 @@ class CodeEditor(Widget):
 
         self.statements = ["var", "if", "else", "while", "for", "break", "continue", "function", "return", "repeat", "until", "do", "or", "and", "xor", "div", "mod", "switch", "case", "default", "with", "exit", "try", "catch", "finally"]
         self.constants = getfromfile("assets/data/constants.txt")
+        self.functions = getfromfile("assets/data/functions.txt")
 
         self.highlighter = CodeEditorHighlighter(
             textedit.document(),
@@ -54,7 +55,7 @@ class CodeEditor(Widget):
                 "#58E55A": [],
 
                 # Statements and functions
-                "#FFB871": [r"\{", r"\}"] + self.statements,
+                "#FFB871": [r"\{", r"\}"] + self.statements + self.functions,
 
                 # Numbers and constants
                 "#FF8080": [r"(?<![A-Za-z_0-9])-?\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?(?![A-Za-z_0-9])"] + self.constants,
@@ -69,7 +70,7 @@ class CodeEditor(Widget):
 
         self.completer = CodeEditorCompleter(
             textedit,
-            self.statements + self.constants
+            self.statements + self.constants + self.functions
         )
     
     def init(self, variables={}, functions={}, assets=[]):

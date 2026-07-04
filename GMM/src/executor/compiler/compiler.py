@@ -66,7 +66,7 @@ class Compiler():
             else:
                 self.game_context.DefineMockAsset(CHUNK2ASSET[asset[0]], asset[1], asset[2])
         
-        self.game_context.CodeBuilder.DeclaredFunctions = declaredfunctions
+        self.game_context.ScriptIndexCounter = 100000 + declaredfunctions
     
     def init_constants(self, constants={}):
         for name, value in constants:
@@ -76,17 +76,22 @@ class Compiler():
 
             self.game_context.DefineConstant(name, float(value))
     
+    def update(self, instance_variables, declaredfunctions):
+        for name, idx in instance_variables.items():
+            self.game_context.DefineInstanceVariable(name, idx)
+        
+        self.game_context.ScriptIndexCounter = 100000 + declaredfunctions
+    
     def compile(self, code, isglobal=False):
-        code = 'var _ = function() { try { ' + code + ' } catch (error) { var d = [error.message, error.longMessage, error.script, error.line, error.stacktrace]; show_message("An error occurred while executing GML: " + error.message); } }; call_later(0, 0, _);'
-
         prevslen = len(dict(self.game_context.GetStrings()))
         prevvlen = len(dict(self.game_context.GetInstanceVariables()))
 
         try:
             root = self.game_context.CompileCode(code, isglobal)
 
+            name = root.Name.Content
             bytecode = bytes(root.Serialize(self.game_context))
-            subnodes = [(node.Name.Content, node.LocalCount, node.ArgumentCount, node.StartOffset) for node in reversed(root.Children)]
+            subnodes = [(node.Name.Content, node.LocalCount, node.ArgumentCount, node.StartOffset) for node in root.Children] # reversed... ?n 
         except Exception as error:
             cerrors = list(self.game_context.CompileContext.Errors)
 
@@ -104,4 +109,14 @@ class Compiler():
             if len(newvariables) > prevvlen:
                 variableids = list(newvariables.keys())[prevvlen:len(newvariables)]
 
-            return True, (bytecode, subnodes, stringids, variableids)
+            return True, (name, bytecode, subnodes, stringids, variableids)
+    
+    def decompile(self, bytecode):
+        try:
+            root = self.game_context.DecompileSource(bytecode)
+
+            code = self.game_context.DecompileCode(root)
+        except Exception as error:
+            return False, error
+        else:
+            return True, code

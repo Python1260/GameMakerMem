@@ -32,6 +32,7 @@ class Dumper():
         self.offsets["Fps"] =                   self.scan_rel32("8B ?? XX XX XX XX 83 ?? 1E 7E 3C F3 0F 10 05 ?? ?? ?? ??")
         self.offsets["builtinVarLookup"] =      self.scan_rel32("42 88 44 31 18 48 8B 0D XX XX XX XX E8 ?? ?? ?? ??")
         self.offsets["instanceVarLookup"] =     self.scan_rel32("4C 8B 35 XX XX XX XX 41 8B 6E 04 44 8D 4D FF")
+        self.offsets["VarNamesInstance"] =      self.scan_rel32("48 8B 05 XX XX XX XX 48 8B 74 24 ?? 48 8B 7C 24 ??")
         self.offsets["name2ref"] =              self.scan_rel32("48 8D 05 XX XX XX XX 0F 1F 80 00 00 00 00 39 48 08", default=-1) # this doesnt exist in older versions
         self.offsets["markedCount"] =           self.scan_rel32("83 8B B0 00 00 00 01 FF 05 XX XX XX XX", "")
         self.offsets["deactiveListDirty"] =     self.scan_rel32("74 0E C6 05 XX XX XX XX 01 C6 05 ?? ?? ?? ?? 01")
@@ -67,12 +68,18 @@ class Dumper():
         self.offsets["_vftable__VMBuffer"] =    self.scan_rel32("48 89 44 24 40 48 8B C8 4C 8D 35 XX XX XX XX 48 85 C0", "E8 ?? ?? ?? ?? 4C 8D 35 XX XX XX XX 48 8B F8 48 85 C0")
         self.offsets["ExecuteIt"] =             self.scan_rel32("E8 XX XX XX XX FF C6 48 83 C3 04 48 83 C7 08", "E8 XX XX XX XX 3C 01 74 ?? 48 8B 0D ?? ?? ?? ?? 48 8B 09")
         self.offsets["GlobalTable"] =           self.scan_rel32("48 8B 0D XX XX XX XX 48 8B D1 E8 ?? ?? ?? ?? FF C6", "48 8B 0D XX XX XX XX 44 89 64 24 20 4C 8D 4D 00")
+        self.offsets["CurrentExec"] =           self.scan_rel32("48 8B 05 XX XX XX XX 48 85 C0 74 ?? 48 8D 4C 24 30")
         self.offsets["CodeVariableFindSlot"] =  self.scan_rel32("E8 XX XX XX XX 8B D0 48 8B CB E8 ?? ?? ?? ?? BA 01 00 00 00")
 
     def dump_other(self):
-        self.offsets["croom_active"] = self.scan_value("48 8B 80 XX XX XX XX 48 89 41 08 48 8B C3", "48 8B 80 XX XX XX XX 49 89 42 08 49 8B C2")
+        self.offsets["croom_active"] =          self.scan_value("48 8B 80 XX XX XX XX 48 89 41 08 48 8B C3", "48 8B 80 XX XX XX XX 49 89 42 08 49 8B C2")
 
-        self.offsets["cinstance_structvarsmap"] = self.scan_value("0F 1F 40 00 48 8B ?? XX 48 63 C3 FF C3 48 C1 E0 04")
+        self.offsets["objectbase_structvarsmap"] = self.scan_value("0F 1F 40 00 48 8B ?? XX 48 63 C3 FF C3 48 C1 E0 04")
+        self.offsets["objectbase_script"] =        self.scan_value("48 8B 48 08 48 89 ?? ?? ?? ?? ?? EB 07 48 89 ?? XX XX XX XX")
+
+        self.offsets["arraybase_size"] =           self.scan_value("74 ?? 66 0F 6E 41 XX F3 0F E6 C0 F2 0F 11 07", "74 ?? 66 0F 6E 81 XX XX XX XX F3 0F E6 C0 F2 0F 11 07")
+        self.offsets["arraybase_storage"] =        self.scan_value("48 03 41 XX 83 78 0C 02 75 ?? 48 8B 08", "48 03 81 XX XX XX XX 83 78 0C 02 75 ?? 48 8B 08")
+        self.offsets["arraybase_flags"] =          self.scan_value("48 8B ?? F6 87 XX 00 00 00 01 74 0C", "48 8B ?? F6 47 XX 01 74 0C")
 
         self.offsets["image_index"] = self.scan_value("F3 0F 11 B3 XX XX XX XX 45 8B C1 48 8B D3 48 8B CB", "F3 0F 59 83 XX XX XX XX F3 0F 11 83 ?? ?? ?? ?? 48 85 C0")
         self.offsets["image_speed"] = self.scan_value("F3 0F 10 8B XX XX XX XX F3 0F 59 8F ?? ?? ?? ?? F3 0F 58 C1", "F3 0F 10 8B XX XX XX XX F3 0F 59 8F ?? ?? ?? ?? F3 0F 58 C1")

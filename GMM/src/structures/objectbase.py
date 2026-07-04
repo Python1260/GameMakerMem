@@ -9,18 +9,29 @@ class ObjectBase(Structure):
         prototype = self.get_prototype()
 
         if prototype.get_variable("toString"):
-            return "function weakref"
+            return "method ref"
         return str(self.get_elements())
     
     __repr__ = __str__
     
     def get_structvarsmap(self):
-        ptr = self.memory.read_ptr(self + self.memory.cinstance_structvarsmap)
+        ptr = self.memory.read_ptr(self + self.memory.objectbase_structvarsmap)
         return StructVarsMap(self.memory, ptr)
     
     def get_prototype(self):
         ptr = self.memory.read_ptr(self + 0x20)
         return ObjectBase(self.memory, ptr)
+    
+    def get_script(self):
+        from ..classes import CScript
+
+        ptr = self.memory.read_ptr(self + self.memory.objectbase_script)
+        return CScript(self.memory, ptr)
+
+    def set_script(self, script):
+        from ..classes import CScript
+
+        return self.memory.write_ptr(self + self.memory.objectbase_script, script.address)
     
     def get_variable(self, name):
         if hasattr(self, name):

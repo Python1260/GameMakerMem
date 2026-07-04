@@ -1,4 +1,5 @@
 from .classes import CRoom, CScript
+from .classes.vm import VMExec
 from .structures import HashMap, ObjectBase
 from .settings.types import *
 
@@ -19,7 +20,7 @@ class GlobalContext():
         detectedver = self.get_version()
 
         if "UILR" in self.chunks:
-            detectedver = (2024, 13, 0, 0)
+            detectedver = (2024, 14, 0, 0)
         elif "PSEM" in self.chunks:
             detectedver = (2023, 2, 0, 0)
         elif "FEAT" in self.chunks:
@@ -128,6 +129,12 @@ class GlobalContext():
         globaltable.id = -5
 
         return globaltable
+    
+    def get_currentexec(self):
+        ptr = self.memory.read_ptr(self.memory.base + self.memory.CurrentExec)
+        currentexec = VMExec(self.memory, ptr)
+
+        return currentexec
 
     def get_builtinvarlookup(self):
         ptr = self.memory.read_ptr(self.memory.base + self.memory.builtinVarLookup)
@@ -192,11 +199,16 @@ class GlobalContext():
         return str(rid)
     
     def get_codevariablename(self, k):
-        variables = self.memory.executor.instance_variables
+        if k > 100000:
+            k -= 100000
 
-        for varname, varid in variables.items():
-            if varid == k:
-                return varname
+            varnames = self.memory.read_ptr(self.memory.base + self.memory.VarNamesInstance)
+            varname = varnames + k * 0x8
+
+            name = self.memory.read_string(self.memory.read_ptr(varname))
+
+            if name:
+                return name
 
         return "[unknown variable]"
     
@@ -239,12 +251,17 @@ class GlobalContext():
 
                 assets.append(asset)
 
-        declaredfunctions = self.memory.read_int(self.memory.base + self.memory.ScriptMainNumber)
+        declaredfunctions = self.get_declaredfunctions()
 
-        return strings, variables, functions, instance_variables, assets, declaredfunctions
+        globaltable = self.get_globaltable()
+
+        return strings, variables, functions, instance_variables, assets, declaredfunctions, globaltable
     
-    def add_declaredfunction(self, name, ccode):
-        declaredfunctions = self.memory.read_int(self.memory.base + self.memory.ScriptMainNumber)
+    def get_declaredfunctions(self):
+        return self.memory.read_int(self.memory.base + self.memory.ScriptMainNumber)
+
+    def add_declaredfunction(self, name, ccode, index=None):
+        declaredfunctions = self.memory.read_int(self.memory.base + self.memory.ScriptMainNumber) if index is None else index
         declaredfunctionarray = self.memory.read_ptr(self.memory.base + self.memory.ScriptMainItemsArray)
         declaredfunctionnames = self.memory.read_ptr(self.memory.base + self.memory.ScriptMainNames)
 
@@ -254,6 +271,7 @@ class GlobalContext():
 
         newcscript.set_name(name)
         newcscript.set_code(ccode)
+        newcscript.set_constructor(True) # to make structs actually work
 
         self.memory.write_ptr(declaredfunctionarray + declaredfunctions * 0x8, newcscript.address)
         self.memory.write_int(self.memory.base + self.memory.ScriptMainNumber, declaredfunctions + 1)
@@ -267,6 +285,15 @@ class GlobalContext():
             self.memory.write_ptr(declaredfunctionnames + declaredfunctions * 0x8, newptr)
 
         return newcscript
+    
+    def get_declaredfunction(self, index=None):
+        declaredfunctions = self.memory.read_int(self.memory.base + self.memory.ScriptMainNumber) if index is None else index
+        declaredfunctionarray = self.memory.read_ptr(self.memory.base + self.memory.ScriptMainItemsArray)
+
+        cscriptaddress = self.memory.read_ptr(declaredfunctionarray + declaredfunctions * 0x8)
+        cscript = CScript(self.memory, cscriptaddress)
+
+        return cscript
     
     def add_string(self, name):
         wad = self.memory.read_ptr(self.memory.base + self.memory.WADBase)
