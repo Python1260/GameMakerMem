@@ -15,22 +15,22 @@ Unfortunately, GMM does NOT support games made using GameMaker V1 or lower, ther
 
 ## NEW!
 GMM now has a special environment with it's own special gml functions, including:
-* gml_wait
-* gml_load
-* gml_load_async
+* gml_wait(t) : makes the main thread wait `t` seconds.
+* gml_load(src, self, other) : executes the gml source `src`.
+* gml_load_safe(src, self, other) : executes the gml source `src` on the main thread.
 
-* debug_get_locals
-* debug_get_self
-* debug_get_other
-* debug_get_script
+* debug_get_locals(l) : gets the levels on the execution level `l` as a struct.
+* debug_get_self(l) : gets the self of the execution level `l`.
+* debug_get_other(l) : gets the other of the execution level `l`.
+* debug_get_script(l) : gets the name of the script at execution level `l`.
 
-* array_freeze
-* array_unfreeze
-* array_frozen
+* array_freeze(a) : makes the array `a` immutable.
+* array_unfreeze(a) : makes the array `a` mutable.
+* array_frozen(a) : returns if the array `a` is immutable.
 
-* script_replace
+* script_replace(s1, s2) : internally swaps the two scripts, functions or methods `s1` and `s2`.
 
-* http_get_direct
+* http_get_direct(url) : directly returns the GET result of the request to the url `url`.
 
 ---
 
