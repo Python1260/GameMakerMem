@@ -1,6 +1,6 @@
 gml_wait
 gml_load
-gml_load_async
+gml_load_safe
 
 debug_get_locals
 debug_get_self

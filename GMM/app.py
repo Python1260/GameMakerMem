@@ -115,9 +115,9 @@ class App():
         if not self.memory: return
 
         self.memory.context.init()
-        strings, variables, functions, instance_variables, assets, declaredfunctions = self.memory.context.get_gamecontext()
+        strings, variables, functions, instance_variables, assets, declaredfunctions, globaltable = self.memory.context.get_gamecontext()
 
-        self.memory.executor.init(strings, variables, functions, instance_variables, assets, declaredfunctions)
+        self.memory.executor.init(strings, variables, functions, instance_variables, assets, declaredfunctions, globaltable)
         self.ui_execute_input.init(variables, functions, assets)
 
         self.init_room()
@@ -265,7 +265,10 @@ class App():
         text = self.ui_execute_input.text
         if not text: return
 
-        status, result = self.memory.executor.execute(text)
+        self.ui_execute_status.text = "* Injecting GML..."
+        QApplication.processEvents()
+
+        status, result = self.memory.executor.inject(text)
 
         if status == 0:
             self.ui_execute_status.text = "* GML executed successfully!"
@@ -273,6 +276,10 @@ class App():
             self.ui_execute_status.text = "* Failed to compile GML!"
         elif status == 2:
             self.ui_execute_status.text = "* Failed to execute GML!"
+        elif status == 3:
+            self.ui_execute_status.text = "* Failed to inject init!"
+        else:
+            self.ui_execute_status.text = "* Execution failed!"
     
     def execute_filechoose(self):
         path = self.mainwindow.open_filechoose(
@@ -287,7 +294,7 @@ class App():
                 self.ui_execute_input.text = file.read()
 
     def reset(self):
-        self.memory.executor.init([], {}, {}, {}, [], 0)
+        self.memory.executor.init([], {}, {}, {}, [], 0, 0)
         self.ui_execute_input.init()
         
         self.ui_execute_status.text = "..."

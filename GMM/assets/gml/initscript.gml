@@ -63,8 +63,8 @@ gml_load = data_register(function(gml, vmself, vmother) {
     return bridge("gml_load", gml, vmself, vmother)
 })
 
-gml_load_async = data_register(function(gml, vmself, vmother) {
-    return bridge("gml_load_async", gml, vmself, vmother)
+gml_load_safe = data_register(function(gml, vmself, vmother) {
+    return bridge("gml_load_safe", gml, vmself, vmother)
 })
 
 // debug

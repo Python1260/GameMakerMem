@@ -231,7 +231,7 @@ class Executor():
             status, result = self.execute(get_safescript(source), vmself, vmother)
 
             return status == 0, result
-        elif name == "gml_load_async":
+        elif name == "gml_load_safe":
             source = args[0]
             vmself = args[1]
             vmother = args[2]
